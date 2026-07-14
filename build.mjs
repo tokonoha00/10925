@@ -113,7 +113,11 @@ async function main() {
     else await processFile(src, dest);
   }
 
-  // Cloudflare Pages 用のヘッダー設定(キャッシュ + 基本のセキュリティヘッダー)
+  // Cloudflare Pages 用のヘッダー設定(キャッシュ + 基本のセキュリティヘッダー)。
+  // ルールごとにワイルドカードは末尾1つだけなので、アプリごとに列挙する。
+  const libRules = INCLUDE.filter((e) => e.startsWith("apps/") && !e.endsWith(".html")).flatMap(
+    (app) => [`/${app}/lib/*`, "  Cache-Control: public, max-age=31536000, immutable", ""]
+  );
   await writeFile(
     path.join(DIST, "_headers"),
     [
@@ -121,10 +125,32 @@ async function main() {
       "  X-Content-Type-Options: nosniff",
       "  Referrer-Policy: strict-origin-when-cross-origin",
       "",
-      "/apps/*/lib/*",
-      "  Cache-Control: public, max-age=31536000, immutable",
-      "",
+      ...libRules,
     ].join("\n"),
+    "utf8"
+  );
+
+  // 存在しないパスにトップページが200で返らないよう、404ページを置く
+  await writeFile(
+    path.join(DIST, "404.html"),
+    await minifyHtml(
+      `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — ページが見つかりません | App Shelf</title>
+<style>
+  body { margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; background:#0a1020; color:#e8eaf0; font-family:"Segoe UI","Yu Gothic UI","Meiryo",sans-serif; text-align:center; padding:24px; }
+  h1 { font-size:64px; margin:0; letter-spacing:0.08em; color:#8cffc1; }
+  p { margin:0; color:#9aa3b2; font-size:14px; line-height:1.9; }
+  a { color:#8cffc1; text-decoration:none; border:1px solid #2c3a4d; border-radius:8px; padding:10px 18px; font-size:13px; }
+  a:hover { background:#131c30; }
+</style></head><body>
+<h1>404</h1>
+<p>お探しのページは見つかりませんでした。<br>URLが変わったか、まだ公開されていない可能性があります。</p>
+<a href="/">アプリ一覧へ戻る</a>
+</body></html>`,
+      { collapseWhitespace: true, removeComments: true, minifyCSS: true }
+    ),
     "utf8"
   );
 
