@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line Boil Maker - 線画からラインボイルGIFを作る</title>
+<style>
+  :root {
+    --bg: #16181d;
+    --panel: #1f232b;
+    --panel2: #262b35;
+    --text: #e8eaf0;
+    --sub: #9aa3b2;
+    --accent: #4f8cff;
+    --accent2: #6ee7a0;
+    --border: #333a46;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    padding: 10px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header .desc { font-size: 12px; color: var(--sub); }
+  main { flex: 1; display: flex; min-height: 0; }
+
+  /* 左パネル */
+  #panel {
+    width: 300px;
+    min-width: 300px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .group {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .group h2 {
+    font-size: 12px;
+    color: var(--sub);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 18px 10px;
+    text-align: center;
+    color: var(--sub);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    line-height: 1.7;
+  }
+  #dropzone.hover { border-color: var(--accent); background: rgba(79,140,255,0.08); }
+  #dropzone strong { color: var(--text); font-size: 13px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .row label { font-size: 12.5px; }
+  .row .val { font-size: 12px; color: var(--accent); min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  select, input[type="color"] {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 12.5px;
+  }
+  input[type="checkbox"] { accent-color: var(--accent); }
+  .check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; cursor: pointer; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.15); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.secondary { background: var(--panel2); border: 1px solid var(--border); color: var(--text); }
+  button.green { background: #2e9e63; }
+  #status { font-size: 12px; color: var(--sub); min-height: 17px; }
+
+  /* 右プレビュー */
+  #right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #previewWrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    min-height: 0;
+    position: relative;
+  }
+  #preview {
+    max-width: 100%;
+    max-height: 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    image-rendering: auto;
+    /* 透過確認用チェッカーボード */
+    background:
+      repeating-conic-gradient(#3a4150 0% 25%, #2b303b 0% 50%) 0 0 / 20px 20px;
+  }
+  #emptyMsg {
+    position: absolute;
+    color: var(--sub);
+    font-size: 14px;
+    pointer-events: none;
+  }
+  #result {
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    padding: 10px 18px;
+    display: none;
+    align-items: center;
+    gap: 16px;
+    max-height: 180px;
+  }
+  #result.show { display: flex; }
+  #result img, #result video {
+    max-height: 140px;
+    max-width: 300px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: repeating-conic-gradient(#3a4150 0% 25%, #2b303b 0% 50%) 0 0 / 16px 16px;
+  }
+  #result .info { font-size: 12.5px; color: var(--sub); line-height: 1.8; }
+  #result .info b { color: var(--accent2); }
+  #result a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Line Boil Maker</h1>
+  <span class="desc">線画を読み込むだけで、手描きで描き直したように揺れる「ラインボイル」アニメを GIF / MP4 / WebM / 連番PNG で書き出せます</span>
+</header>
+<main>
+  <div id="panel">
+    <div class="group">
+      <h2>1. 画像を読み込む</h2>
+      <div id="dropzone">
+        <strong>クリックして画像を選択</strong><br>
+        またはドラッグ&ドロップ / 貼り付け (Ctrl+V)<br>
+        PNG / JPG / WebP(透過PNG対応)
+      </div>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+      <button class="secondary" id="sampleBtn">サンプル線画で試す</button>
+    </div>
+
+    <div class="group">
+      <h2>2. 揺れの設定</h2>
+      <div class="row"><label>コマ数(描き直し枚数)</label><span class="val" id="framesVal">3</span></div>
+      <input type="range" id="frames" min="2" max="8" step="1" value="3">
+      <div class="row"><label>揺れの強さ</label><span class="val" id="ampVal">2.5px</span></div>
+      <input type="range" id="amp" min="0.5" max="8" step="0.1" value="2.5">
+      <div class="row"><label>揺れの波長(細かさ)</label><span class="val" id="scaleVal">45px</span></div>
+      <input type="range" id="scale" min="10" max="120" step="1" value="45">
+      <div class="row"><label>再生速度</label><span class="val" id="fpsVal">10fps</span></div>
+      <input type="range" id="fps" min="4" max="30" step="1" value="10">
+      <label class="check"><input type="checkbox" id="whiteToAlpha"> 白背景を透過にする</label>
+    </div>
+
+    <div class="group">
+      <h2>3. 出力の設定</h2>
+      <div class="row">
+        <label>背景</label>
+        <select id="bgMode">
+          <option value="transparent">透過</option>
+          <option value="white">白</option>
+          <option value="black">黒</option>
+          <option value="custom">カスタム色</option>
+        </select>
+      </div>
+      <div class="row" id="bgColorRow" style="display:none">
+        <label>背景色</label>
+        <input type="color" id="bgColor" value="#ffffff">
+      </div>
+      <div class="row">
+        <label>出力サイズ上限</label>
+        <select id="maxSize">
+          <option value="0">元のサイズ</option>
+          <option value="1280">長辺 1280px</option>
+          <option value="960">長辺 960px</option>
+          <option value="640">長辺 640px</option>
+          <option value="480">長辺 480px</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>4. 書き出し</h2>
+      <button id="gifBtn" disabled>GIF を書き出す</button>
+      <button id="mp4Btn" class="green" disabled>MP4 動画を書き出す</button>
+      <button id="webmBtn" class="green" disabled>WebM 動画を書き出す</button>
+      <button id="zipBtn" class="secondary" disabled>連番PNG (ZIP) を書き出す</button>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="previewWrap">
+      <span id="emptyMsg">← 画像を読み込むとここでプレビューが動きます</span>
+      <canvas id="preview" style="display:none"></canvas>
+    </div>
+    <div id="result">
+      <img id="resultImg" alt="書き出し結果">
+      <video id="resultVideo" autoplay muted loop playsinline style="display:none"></video>
+      <div class="info" id="resultInfo"></div>
+    </div>
+  </div>
+</main>
+
+<script src="gifenc.js"></script>
+<script src="lib/gifenc-lib.js"></script>
+<script src="lib/mp4-muxer.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script>
+"use strict";
+
+// ---------- 状態 ----------
+let srcImage = null;      // 読み込んだ元画像 (ImageBitmap/Image)
+let srcData = null;       // 前処理済み ImageData(透過化・リサイズ後)
+let boilFrames = [];      // 生成済みフレーム ImageData[]
+let generating = false;
+let regenQueued = false;
+let baseSeed = 12345;
+
+const $ = (id) => document.getElementById(id);
+const preview = $("preview");
+const pctx = preview.getContext("2d");
+const status = $("status");
+
+// ---------- ユーティリティ ----------
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function setStatus(msg) { status.textContent = msg; }
+
+// ---------- 画像読み込み ----------
+async function loadFile(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    srcImage = img;
+    autoDetectAlpha();
+    rebuildSource();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); setStatus("画像を読み込めませんでした"); };
+  img.src = url;
+}
+
+// 完全不透明画像なら「白を透過」を自動でオンにする
+function autoDetectAlpha() {
+  const c = document.createElement("canvas");
+  const s = Math.min(1, 256 / Math.max(srcImage.width, srcImage.height));
+  c.width = Math.max(1, Math.round(srcImage.width * s));
+  c.height = Math.max(1, Math.round(srcImage.height * s));
+  const x = c.getContext("2d", { willReadFrequently: true });
+  x.drawImage(srcImage, 0, 0, c.width, c.height);
+  const d = x.getImageData(0, 0, c.width, c.height).data;
+  let hasAlpha = false;
+  for (let i = 3; i < d.length; i += 40) {
+    if (d[i] < 250) { hasAlpha = true; break; }
+  }
+  $("whiteToAlpha").checked = !hasAlpha;
+}
+
+// 元画像 → リサイズ+透過化した srcData を作る
+function rebuildSource() {
+  if (!srcImage) return;
+  let w = srcImage.width, h = srcImage.height;
+  const limit = parseInt($("maxSize").value, 10);
+  if (limit > 0 && Math.max(w, h) > limit) {
+    const s = limit / Math.max(w, h);
+    w = Math.max(1, Math.round(w * s));
+    h = Math.max(1, Math.round(h * s));
+  }
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  x.imageSmoothingQuality = "high";
+  x.drawImage(srcImage, 0, 0, w, h);
+  const data = x.getImageData(0, 0, w, h);
+
+  if ($("whiteToAlpha").checked) whiteToAlpha(data);
+  srcData = data;
+  regenerate();
+}
+
+// GIMPの color-to-alpha(白)相当: 白を透過に、色つきの線は保持
+function whiteToAlpha(imgData) {
+  const d = imgData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const a = Math.max(255 - r, 255 - g, 255 - b);
+    if (a === 0) { d[i + 3] = 0; continue; }
+    d[i]     = 255 - ((255 - r) * 255) / a;
+    d[i + 1] = 255 - ((255 - g) * 255) / a;
+    d[i + 2] = 255 - ((255 - b) * 255) / a;
+    d[i + 3] = (d[i + 3] * a) / 255;
+  }
+}
+
+// ---------- ラインボイル生成 ----------
+// 値ノイズ: グリッドに乱数を置きスムーズ補間。2オクターブで有機的な揺れに
+function makeGrid(seed, gw, gh) {
+  const rnd = mulberry32(seed);
+  const g = new Float32Array(gw * gh);
+  for (let i = 0; i < g.length; i++) g[i] = rnd() * 2 - 1;
+  return g;
+}
+
+function renderBoilFrame(src, frameSeed, amp, scale) {
+  const W = src.width, H = src.height;
+  const s2 = Math.max(4, scale / 2.5);
+  const inv1 = 1 / scale, inv2 = 1 / s2;
+  const gw1 = Math.ceil(W * inv1) + 2, gh1 = Math.ceil(H * inv1) + 2;
+  const gw2 = Math.ceil(W * inv2) + 2, gh2 = Math.ceil(H * inv2) + 2;
+  const gx1 = makeGrid(frameSeed * 4 + 0, gw1, gh1);
+  const gy1 = makeGrid(frameSeed * 4 + 1, gw1, gh1);
+  const gx2 = makeGrid(frameSeed * 4 + 2, gw2, gh2);
+  const gy2 = makeGrid(frameSeed * 4 + 3, gw2, gh2);
+
+  const noise = (grid, gw, x, y, inv) => {
+    const u = x * inv, v = y * inv;
+    const i = u | 0, j = v | 0;
+    let fu = u - i, fv = v - j;
+    fu = fu * fu * (3 - 2 * fu);
+    fv = fv * fv * (3 - 2 * fv);
+    const r0 = j * gw + i;
+    const a = grid[r0], b = grid[r0 + 1], c = grid[r0 + gw], d = grid[r0 + gw + 1];
+    return a + (b - a) * fu + (c - a + (a - b - c + d) * fu) * fv;
+  };
+
+  const sd = src.data;
+  const out = new ImageData(W, H);
+  const od = out.data;
+  const norm = amp / 1.35;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = (noise(gx1, gw1, x, y, inv1) + 0.35 * noise(gx2, gw2, x, y, inv2)) * norm;
+      const dy = (noise(gy1, gw1, x, y, inv1) + 0.35 * noise(gy2, gw2, x, y, inv2)) * norm;
+      let sx = x + dx, sy = y + dy;
+      if (sx < 0) sx = 0; else if (sx > W - 1.001) sx = W - 1.001;
+      if (sy < 0) sy = 0; else if (sy > H - 1.001) sy = H - 1.001;
+      const x0 = sx | 0, y0 = sy | 0;
+      const fx = sx - x0, fy = sy - y0;
+      const i00 = (y0 * W + x0) * 4;
+      const i10 = i00 + 4;
+      const i01 = i00 + W * 4;
+      const i11 = i01 + 4;
+      const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy),
+            w01 = (1 - fx) * fy,       w11 = fx * fy;
+      // アルファ加重(premultiplied)でにじみのない補間
+      const a00 = sd[i00 + 3], a10 = sd[i10 + 3], a01 = sd[i01 + 3], a11 = sd[i11 + 3];
+      const aSum = a00 * w00 + a10 * w10 + a01 * w01 + a11 * w11;
+      const oi = (y * W + x) * 4;
+      if (aSum < 0.5) { od[oi + 3] = 0; continue; }
+      od[oi]     = (sd[i00] * a00 * w00 + sd[i10] * a10 * w10 + sd[i01] * a01 * w01 + sd[i11] * a11 * w11) / aSum;
+      od[oi + 1] = (sd[i00 + 1] * a00 * w00 + sd[i10 + 1] * a10 * w10 + sd[i01 + 1] * a01 * w01 + sd[i11 + 1] * a11 * w11) / aSum;
+      od[oi + 2] = (sd[i00 + 2] * a00 * w00 + sd[i10 + 2] * a10 * w10 + sd[i01 + 2] * a01 * w01 + sd[i11 + 2] * a11 * w11) / aSum;
+      od[oi + 3] = aSum;
+    }
+  }
+  return out;
+}
+
+async function regenerate() {
+  if (!srcData) return;
+  if (generating) { regenQueued = true; return; }
+  generating = true;
+  const N = parseInt($("frames").value, 10);
+  const amp = parseFloat($("amp").value);
+  const scale = parseInt($("scale").value, 10);
+  const newFrames = [];
+  for (let f = 0; f < N; f++) {
+    setStatus(`フレーム生成中... ${f + 1}/${N}`);
+    await new Promise((r) => setTimeout(r, 0));
+    newFrames.push(renderBoilFrame(srcData, baseSeed + f * 101, amp, scale));
+  }
+  boilFrames = newFrames;
+  preview.width = srcData.width;
+  preview.height = srcData.height;
+  preview.style.display = "";
+  $("emptyMsg").style.display = "none";
+  $("gifBtn").disabled = false;
+  $("webmBtn").disabled = false;
+  $("zipBtn").disabled = false;
+  if ("VideoEncoder" in window) $("mp4Btn").disabled = false;
+  else $("mp4Btn").title = "このブラウザはWebCodecs非対応です";
+  setStatus(`${srcData.width}×${srcData.height} / ${N}コマ 生成完了`);
+  generating = false;
+  if (regenQueued) { regenQueued = false; regenerate(); }
+}
+
+// ---------- プレビュー再生 ----------
+function currentBg() {
+  const mode = $("bgMode").value;
+  if (mode === "white") return [255, 255, 255];
+  if (mode === "black") return [0, 0, 0];
+  if (mode === "custom") {
+    const hex = $("bgColor").value;
+    return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  }
+  return null; // 透過
+}
+
+function tick(t) {
+  if (boilFrames.length > 0) {
+    const fps = parseInt($("fps").value, 10);
+    const idx = Math.floor((t / 1000) * fps) % boilFrames.length;
+    pctx.clearRect(0, 0, preview.width, preview.height);
+    const bg = currentBg();
+    if (bg) {
+      pctx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`;
+      pctx.fillRect(0, 0, preview.width, preview.height);
+    }
+    // putImageDataは背景を消すので一時canvas経由で合成
+    pctx.drawImage(frameToCanvas(idx), 0, 0);
+  }
+  requestAnimationFrame(tick);
+}
+const frameCanvasCache = new Map();
+function frameToCanvas(idx) {
+  let c = frameCanvasCache.get(boilFrames);
+  if (!c) { c = []; frameCanvasCache.clear(); frameCanvasCache.set(boilFrames, c); }
+  if (!c[idx]) {
+    const cv = document.createElement("canvas");
+    cv.width = boilFrames[idx].width;
+    cv.height = boilFrames[idx].height;
+    cv.getContext("2d").putImageData(boilFrames[idx], 0, 0);
+    c[idx] = cv;
+  }
+  return c[idx];
+}
+requestAnimationFrame(tick);
+
+// ---------- GIF書き出し ----------
+// gifenc(OSS)による適応パレット量子化。透過は index 0 に予約
+function quantizeAdaptive(transparent, bg, W, H) {
+  const { quantize, applyPalette } = GifencLib;
+  if (transparent) {
+    // 不透明ピクセルだけを集めて255色パレットを作る
+    const cap = 400000;
+    const buf = new Uint8Array(cap * 4);
+    let count = 0;
+    outer:
+    for (const fr of boilFrames) {
+      const d = fr.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 128) continue;
+        const o = count * 4;
+        buf[o] = d[i]; buf[o + 1] = d[i + 1]; buf[o + 2] = d[i + 2]; buf[o + 3] = 255;
+        if (++count >= cap) break outer;
+      }
+    }
+    if (count === 0) {
+      return { indexed: boilFrames.map(() => new Uint8Array(W * H)), palette: [[255, 0, 255]], transIndex: 0 };
+    }
+    const pal = quantize(buf.slice(0, count * 4), 255, { format: "rgb565" });
+    const indexed = boilFrames.map((fr) => {
+      const idx = applyPalette(fr.data, pal, "rgb565");
+      const d = fr.data;
+      const out = new Uint8Array(idx.length);
+      for (let p = 0, i = 3; p < idx.length; p++, i += 4) {
+        out[p] = d[i] < 128 ? 0 : idx[p] + 1;
+      }
+      return out;
+    });
+    return { indexed, palette: [[255, 0, 255], ...pal], transIndex: 0 };
+  }
+  // 不透過: 背景に合成してから256色量子化(パレットは先頭フレームから作成)
+  const comped = boilFrames.map((fr) => {
+    const d = fr.data;
+    const o = new Uint8ClampedArray(d.length);
+    for (let i = 0; i < d.length; i += 4) {
+      const na = d[i + 3] / 255;
+      o[i]     = d[i] * na + bg[0] * (1 - na);
+      o[i + 1] = d[i + 1] * na + bg[1] * (1 - na);
+      o[i + 2] = d[i + 2] * na + bg[2] * (1 - na);
+      o[i + 3] = 255;
+    }
+    return o;
+  });
+  const pal = quantize(comped[0], 256, { format: "rgb565" });
+  return {
+    indexed: comped.map((c) => applyPalette(c, pal, "rgb565")),
+    palette: pal,
+    transIndex: -1,
+  };
+}
+
+// フォールバック用固定パレット: 0=透過, 1..216=6×6×6カラーキューブ, 217..246=グレー30階調
+function buildPalette() {
+  const pal = [[255, 0, 255]];
+  for (let r = 0; r < 6; r++)
+    for (let g = 0; g < 6; g++)
+      for (let b = 0; b < 6; b++)
+        pal.push([r * 51, g * 51, b * 51]);
+  for (let i = 0; i < 30; i++) {
+    const v = Math.round((i * 255) / 29);
+    pal.push([v, v, v]);
+  }
+  return pal;
+}
+
+function quantizeFixed(r, g, b) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  if (mx - mn <= 16) {
+    const v = Math.round(((r + g + b) / 3 / 255) * 29);
+    return 217 + v;
+  }
+  return 1 + Math.round(r / 51) * 36 + Math.round(g / 51) * 6 + Math.round(b / 51);
+}
+
+function exportGIF() {
+  if (boilFrames.length === 0) return;
+  setStatus("GIFエンコード中...");
+  setTimeout(() => {
+    const W = boilFrames[0].width, H = boilFrames[0].height;
+    const bg = currentBg();
+    const transparent = bg === null;
+    let indexed, palette, transIndex;
+    if (typeof GifencLib !== "undefined") {
+      ({ indexed, palette, transIndex } = quantizeAdaptive(transparent, bg, W, H));
+    } else {
+      // ライブラリが読めない環境用フォールバック(固定パレット)
+      palette = buildPalette();
+      transIndex = transparent ? 0 : -1;
+      indexed = boilFrames.map((fr) => {
+        const d = fr.data;
+        const px = new Uint8Array(W * H);
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+          const a = d[i + 3];
+          if (transparent) {
+            if (a < 128) { px[p] = 0; continue; }
+            px[p] = quantizeFixed(d[i], d[i + 1], d[i + 2]);
+          } else {
+            const na = a / 255;
+            px[p] = quantizeFixed(
+              d[i] * na + bg[0] * (1 - na),
+              d[i + 1] * na + bg[1] * (1 - na),
+              d[i + 2] * na + bg[2] * (1 - na)
+            );
+          }
+        }
+        return px;
+      });
+    }
+    const fps = parseInt($("fps").value, 10);
+    const delayCs = Math.max(2, Math.round(100 / fps));
+    const bytes = GifEnc.encode(indexed, W, H, palette, delayCs, transIndex);
+    const blob = new Blob([bytes], { type: "image/gif" });
+    showResult(blob, "gif", `${W}×${H} / ${boilFrames.length}コマ / ${fps}fps${transparent ? " / 透過" : ""}`);
+    setStatus("GIF書き出し完了");
+  }, 20);
+}
+
+// ---------- MP4書き出し (WebCodecs + mp4-muxer) ----------
+async function exportMP4() {
+  if (boilFrames.length === 0) return;
+  if (!("VideoEncoder" in window)) {
+    setStatus("このブラウザはWebCodecs非対応です。WebM書き出しをご利用ください");
+    return;
+  }
+  const N = boilFrames.length;
+  const fps = parseInt($("fps").value, 10);
+  let bg = currentBg();
+  if (bg === null) bg = [255, 255, 255]; // 動画は透過不可のため白に
+  // H.264は偶数サイズ必須
+  const W = boilFrames[0].width, H = boilFrames[0].height;
+  const outW = W + (W % 2), outH = H + (H % 2);
+
+  // 解像度に対応できるレベルを順に探す
+  let config = null;
+  for (const codec of ["avc1.42001f", "avc1.420028", "avc1.42002a", "avc1.420034"]) {
+    const c = { codec, width: outW, height: outH, bitrate: 8_000_000, framerate: fps };
+    try {
+      if ((await VideoEncoder.isConfigSupported(c)).supported) { config = c; break; }
+    } catch (e) { /* 次の候補へ */ }
+  }
+  if (!config) { setStatus("対応するH.264エンコーダーが見つかりませんでした"); return; }
+
+  const muxer = new Mp4Muxer.Muxer({
+    target: new Mp4Muxer.ArrayBufferTarget(),
+    video: { codec: "avc", width: outW, height: outH },
+    fastStart: "in-memory",
+  });
+  let encodeError = null;
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+    error: (e) => { encodeError = e; },
+  });
+  encoder.configure(config);
+
+  const cv = document.createElement("canvas");
+  cv.width = outW; cv.height = outH;
+  const cx = cv.getContext("2d");
+  const totalFrames = Math.max(N, Math.ceil(3 * fps)); // 3秒以上になるまでループ
+  for (let f = 0; f < totalFrames; f++) {
+    cx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`;
+    cx.fillRect(0, 0, outW, outH);
+    cx.drawImage(frameToCanvas(f % N), 0, 0);
+    const vf = new VideoFrame(cv, {
+      timestamp: Math.round((f * 1e6) / fps),
+      duration: Math.round(1e6 / fps),
+    });
+    encoder.encode(vf, { keyFrame: f % (fps * 2) === 0 });
+    vf.close();
+    if (f % 15 === 14) {
+      setStatus(`MP4エンコード中... ${f + 1}/${totalFrames}`);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  }
+  await encoder.flush();
+  muxer.finalize();
+  if (encodeError) { setStatus("MP4エンコード失敗: " + encodeError.message); return; }
+  const blob = new Blob([muxer.target.buffer], { type: "video/mp4" });
+  showResult(blob, "mp4", `${outW}×${outH} / ${fps}fps / 約${(totalFrames / fps).toFixed(1)}秒`);
+  setStatus("MP4書き出し完了");
+}
+
+// ---------- 連番PNG(ZIP)書き出し ----------
+async function exportZIP() {
+  if (boilFrames.length === 0) return;
+  setStatus("連番PNGを作成中...");
+  const N = boilFrames.length;
+  const fps = parseInt($("fps").value, 10);
+  const bg = currentBg(); // 透過ならフル透過PNGのまま
+  const W = boilFrames[0].width, H = boilFrames[0].height;
+  const zip = new JSZip();
+  for (let f = 0; f < N; f++) {
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const cx = cv.getContext("2d");
+    if (bg) {
+      cx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`;
+      cx.fillRect(0, 0, W, H);
+    }
+    cx.drawImage(frameToCanvas(f), 0, 0);
+    const blob = await new Promise((r) => cv.toBlob(r, "image/png"));
+    zip.file(`frame_${String(f).padStart(3, "0")}.png`, blob);
+  }
+  zip.file(
+    "info.txt",
+    `Line Boil Maker 連番PNG\r\nフレーム数: ${N}\r\n推奨fps: ${fps}\r\nループ素材です(frame_000から順に繰り返し再生)。\r\n`
+  );
+  const blob = await zip.generateAsync({ type: "blob" });
+  showResult(blob, "zip", `${W}×${H} / ${N}枚 / 推奨${fps}fps${bg ? "" : " / 透過PNG"}`);
+  setStatus("連番PNG(ZIP)書き出し完了");
+}
+
+// ---------- WebM書き出し ----------
+async function exportWebM() {
+  if (boilFrames.length === 0) return;
+  const W = boilFrames[0].width, H = boilFrames[0].height;
+  const fps = parseInt($("fps").value, 10);
+  let bg = currentBg();
+  if (bg === null) bg = [255, 255, 255]; // 動画は透過不可のため白に
+
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const cx = cv.getContext("2d");
+  const stream = cv.captureStream(fps);
+  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+    ? "video/webm;codecs=vp9" : "video/webm";
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+  const done = new Promise((r) => { rec.onstop = r; });
+
+  // 3秒以上になるまでループを繰り返して録画
+  const totalFrames = Math.max(boilFrames.length, Math.ceil(3 * fps));
+  rec.start();
+  setStatus("WebM録画中...");
+  for (let f = 0; f < totalFrames; f++) {
+    cx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`;
+    cx.fillRect(0, 0, W, H);
+    cx.drawImage(frameToCanvas(f % boilFrames.length), 0, 0);
+    await new Promise((r) => setTimeout(r, 1000 / fps));
+  }
+  rec.stop();
+  await done;
+  const blob = new Blob(chunks, { type: "video/webm" });
+  showResult(blob, "webm", `${W}×${H} / ${fps}fps / 約${(totalFrames / fps).toFixed(1)}秒`);
+  setStatus("WebM書き出し完了(GIFのような自動ループは再生側の設定に依存します)");
+}
+
+// ---------- 結果表示&ダウンロード ----------
+let lastUrl = null;
+function showResult(blob, ext, detail) {
+  if (lastUrl) URL.revokeObjectURL(lastUrl);
+  lastUrl = URL.createObjectURL(blob);
+  const name = `lineboil_${Date.now()}.${ext}`;
+  const img = $("resultImg");
+  const vid = $("resultVideo");
+  img.style.display = "none";
+  vid.style.display = "none";
+  if (ext === "gif") { img.src = lastUrl; img.style.display = ""; }
+  else if (ext === "mp4" || ext === "webm") { vid.src = lastUrl; vid.style.display = ""; }
+  $("resultInfo").innerHTML =
+    `<b>${name}</b>(${(blob.size / 1024).toFixed(1)} KB)<br>${detail}<br>` +
+    `<a href="${lastUrl}" download="${name}">保存されない場合はここをクリック</a>`;
+  $("result").classList.add("show");
+  const a = document.createElement("a");
+  a.href = lastUrl;
+  a.download = name;
+  a.click();
+}
+
+// ---------- サンプル線画 ----------
+function loadSample() {
+  const W = 480, H = 360;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff";
+  x.fillRect(0, 0, W, H);
+  x.strokeStyle = "#1a1a1a";
+  x.lineWidth = 4;
+  x.lineCap = "round";
+  x.lineJoin = "round";
+  const rnd = mulberry32(7);
+  const wobblyLine = (pts) => {
+    x.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const [px, py] = pts[i];
+      const jx = px + (rnd() - 0.5) * 3, jy = py + (rnd() - 0.5) * 3;
+      if (i === 0) x.moveTo(jx, jy);
+      else x.lineTo(jx, jy);
+    }
+    x.stroke();
+  };
+  const circlePts = (cx0, cy0, r, n, a0 = 0, a1 = Math.PI * 2) => {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      pts.push([cx0 + Math.cos(a) * r, cy0 + Math.sin(a) * r]);
+    }
+    return pts;
+  };
+  // 顔
+  wobblyLine(circlePts(240, 170, 100, 40));
+  wobblyLine(circlePts(205, 150, 12, 16));   // 左目
+  wobblyLine(circlePts(275, 150, 12, 16));   // 右目
+  wobblyLine(circlePts(240, 190, 45, 24, 0.3, Math.PI - 0.3)); // 口
+  // 下線の走り書き
+  const under = [];
+  for (let i = 0; i <= 30; i++) under.push([90 + i * 10, 320 + Math.sin(i * 0.9) * 6]);
+  wobblyLine(under);
+
+  const img = new Image();
+  img.onload = () => {
+    srcImage = img;
+    $("whiteToAlpha").checked = true;
+    rebuildSource();
+  };
+  img.src = c.toDataURL();
+}
+
+// ---------- イベント ----------
+$("dropzone").addEventListener("click", () => $("fileInput").click());
+$("fileInput").addEventListener("change", (e) => loadFile(e.target.files[0]));
+$("sampleBtn").addEventListener("click", loadSample);
+
+const dz = $("dropzone");
+document.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("hover"); });
+document.addEventListener("dragleave", () => dz.classList.remove("hover"));
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dz.classList.remove("hover");
+  if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+});
+document.addEventListener("paste", (e) => {
+  for (const item of e.clipboardData.items) {
+    if (item.type.startsWith("image/")) { loadFile(item.getAsFile()); break; }
+  }
+});
+
+// スライダー: 表示更新+再生成(揺れ系はデバウンス)
+let regenTimer = null;
+function queueRegen() {
+  clearTimeout(regenTimer);
+  regenTimer = setTimeout(regenerate, 250);
+}
+$("frames").addEventListener("input", () => { $("framesVal").textContent = $("frames").value; queueRegen(); });
+$("amp").addEventListener("input", () => { $("ampVal").textContent = $("amp").value + "px"; queueRegen(); });
+$("scale").addEventListener("input", () => { $("scaleVal").textContent = $("scale").value + "px"; queueRegen(); });
+$("fps").addEventListener("input", () => { $("fpsVal").textContent = $("fps").value + "fps"; });
+$("whiteToAlpha").addEventListener("change", rebuildSource);
+$("maxSize").addEventListener("change", rebuildSource);
+$("bgMode").addEventListener("change", () => {
+  $("bgColorRow").style.display = $("bgMode").value === "custom" ? "" : "none";
+});
+$("gifBtn").addEventListener("click", exportGIF);
+$("mp4Btn").addEventListener("click", exportMP4);
+$("webmBtn").addEventListener("click", exportWebM);
+$("zipBtn").addEventListener("click", exportZIP);
+</script>
+</body>
+</html>

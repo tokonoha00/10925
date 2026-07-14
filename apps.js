@@ -31,6 +31,46 @@ const apps = [
     url: "https://github.com/tokonoha00/Multi-image-canvas"
   },
   {
+    name: "Line Boil Maker",
+    description: "線画を読み込むだけで、手描きで描き直したように線が揺れる『ラインボイル』アニメを透過GIF・MP4・連番PNGで書き出せるツールです。",
+    status: "released",
+    category: "MATERIAL TOOL",
+    icon: "✎",
+    accent: "#7fb5ff",
+    technologies: ["HTML", "Canvas", "JavaScript"],
+    url: "apps/line-boil-maker/"
+  },
+  {
+    name: "Idle Motion Maker",
+    description: "立ち絵やマスコットのPNGに、浮遊・呼吸・ぷるぷる・跳ねなどの待機モーションを付けて完全ループ素材として書き出せるツールです。",
+    status: "released",
+    category: "MATERIAL TOOL",
+    icon: "◍",
+    accent: "#ff9f7f",
+    technologies: ["HTML", "Canvas", "JavaScript"],
+    url: "apps/idle-motion-maker/"
+  },
+  {
+    name: "Manga FX Maker",
+    description: "手描き風に揺れる集中線・流線・怒りマーク・汗などの漫符アニメを生成し、配信や動画編集用の透過素材として書き出せるツールです。",
+    status: "released",
+    category: "MATERIAL TOOL",
+    icon: "※",
+    accent: "#f28bd0",
+    technologies: ["HTML", "Canvas", "JavaScript"],
+    url: "apps/manga-fx-maker/"
+  },
+  {
+    name: "Logo Shine Maker",
+    description: "ロゴ・タイトル画像にキラッと光が走る／虹色に輝くループアニメを付けて、サムネや配信オーバーレイ用素材を書き出せるツールです。",
+    status: "released",
+    category: "MATERIAL TOOL",
+    icon: "✧",
+    accent: "#ffd75e",
+    technologies: ["HTML", "Canvas", "JavaScript"],
+    url: "apps/logo-shine-maker/"
+  },
+  {
     name: "Alarm App",
     description: "起床体験を分かりやすく整える、スマートフォン向けアラームアプリを開発しています。",
     status: "developing",
