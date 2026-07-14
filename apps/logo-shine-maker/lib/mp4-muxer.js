@@ -1,3 +1,4 @@
+/*! mp4-muxer v5.2.2 | (c) Vanilagy | MIT License | @license */
 "use strict";
 var Mp4Muxer = (() => {
   var __defProp = Object.defineProperty;

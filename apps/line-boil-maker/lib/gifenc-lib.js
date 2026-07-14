@@ -1,4 +1,4 @@
-/* gifenc v1.0.3 (c) Matt DesLauriers, MIT License - CJS build wrapped for browser global */
+/*! gifenc v1.0.3 | (c) Matt DesLauriers | MIT License | @license | CJS build wrapped as browser global */
 var GifencLib = (function () {
 var exports = {};
 var __defProp = Object.defineProperty;

@@ -1,0 +1,27 @@
+{
+  "name": "app-shelf",
+  "version": "1.0.0",
+  "description": "App Shelf — 静的アプリ一覧サイト",
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "wrangler pages deploy dist --project-name=app-shelf"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tokonoha00/10925.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tokonoha00/10925/issues"
+  },
+  "homepage": "https://github.com/tokonoha00/10925#readme",
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "html-minifier-terser": "^7.2.0",
+    "wrangler": "^4.110.0"
+  },
+  "private": true
+}
