@@ -44,6 +44,13 @@
         <p id="resultCount" class="result-count" aria-live="polite"></p>
       </div>
 
+      <div class="kind-tools" aria-label="使い方で絞り込み">
+        <span class="kind-tools-label">使い方</span>
+        <button type="button" class="kind-filter active" data-kind="all" aria-pressed="true">すべて</button>
+        <button type="button" class="kind-filter kf-web" data-kind="web" aria-pressed="false"><span aria-hidden="true">🌐</span>ブラウザで動く<span class="filter-count" id="countWeb">0</span></button>
+        <button type="button" class="kind-filter kf-download" data-kind="download" aria-pressed="false"><span aria-hidden="true">⬇</span>ダウンロードして使う<span class="filter-count" id="countDownload">0</span></button>
+      </div>
+
       <div id="appGrid" class="app-grid"></div>
       <div id="emptyState" class="empty-state" hidden>
         <span aria-hidden="true">◌</span>

@@ -2,6 +2,7 @@
 const apps = [
   {
     name: "UI Animation Gallery",
+    kind: "web",
     description: "スマホUIのアニメーションを検索・比較し、CSSとHTMLを調整してコピーできるUI辞書です。",
     status: "released",
     category: "DESIGN TOOL",
@@ -12,6 +13,7 @@ const apps = [
   },
   {
     name: "Mobile Prompt Bridge",
+    kind: "download",
     description: "スマホのフリック入力や音声入力を使い、同じWi-Fi上のPCエディタへプロンプトを貼り付け・送信できる補助ツールです。",
     status: "released",
     category: "UTILITY",
@@ -22,6 +24,7 @@ const apps = [
   },
   {
     name: "Multi Image Canvas",
+    kind: "download",
     description: "複数の参考画像を自由に配置し、作業中の画面へオーバーレイ表示できるWindows向け画像ビューアーです。",
     status: "released",
     category: "DESKTOP APP",
@@ -32,6 +35,7 @@ const apps = [
   },
   {
     name: "Line Boil Maker",
+    kind: "web",
     description: "線画を読み込むだけで、手描きで描き直したように線が揺れる『ラインボイル』アニメを透過GIF・MP4・連番PNGで書き出せるツールです。",
     status: "released",
     category: "MATERIAL TOOL",
@@ -42,6 +46,7 @@ const apps = [
   },
   {
     name: "Idle Motion Maker",
+    kind: "web",
     description: "立ち絵やマスコットのPNGに、浮遊・呼吸・ぷるぷる・跳ねなどの待機モーションを付けて完全ループ素材として書き出せるツールを開発しています。",
     status: "developing",
     category: "MATERIAL TOOL",
@@ -52,6 +57,7 @@ const apps = [
   },
   {
     name: "Manga FX Maker",
+    kind: "web",
     description: "手描き風に揺れる集中線・流線・怒りマーク・汗などの漫符アニメを生成し、配信や動画編集用の透過素材として書き出せるツールを開発しています。",
     status: "developing",
     category: "MATERIAL TOOL",
@@ -62,6 +68,7 @@ const apps = [
   },
   {
     name: "Logo Shine Maker",
+    kind: "web",
     description: "ロゴ・タイトル画像にキラッと光が走る／虹色に輝くループアニメを付けて、サムネや配信オーバーレイ用素材を書き出せるツールです。",
     status: "released",
     category: "MATERIAL TOOL",
@@ -72,6 +79,7 @@ const apps = [
   },
   {
     name: "Alarm App",
+    kind: "download",
     description: "起床体験を分かりやすく整える、スマートフォン向けアラームアプリを開発しています。",
     status: "developing",
     category: "MOBILE APP",
@@ -82,6 +90,7 @@ const apps = [
   },
   {
     name: "Next Project",
+    kind: "",
     description: "日常の小さな手間を減らす、新しいツールのアイデアを検討しています。",
     status: "planned",
     category: "IDEA",
@@ -98,35 +107,45 @@ const statusLabels = {
   planned: "構想中"
 };
 
+// 使い方の種類。カードのバッジ・ボタン文言・絞り込みに使う
+const kindMeta = {
+  web: { label: "ブラウザで動く", icon: "🌐", cta: "ブラウザで開く", arrow: "↗" },
+  download: { label: "ダウンロードして使う", icon: "⬇", cta: "配布ページへ", arrow: "↗" }
+};
+
 const appGrid = document.querySelector("#appGrid");
 const searchInput = document.querySelector("#searchInput");
 const resultCount = document.querySelector("#resultCount");
 const emptyState = document.querySelector("#emptyState");
 let activeFilter = "all";
+let activeKind = "all";
 let isFirstRender = true;
 
 function renderApps() {
   const query = searchInput.value.trim().toLowerCase().normalize("NFKC");
   const filtered = apps.filter(app => {
     const matchesStatus = activeFilter === "all" || app.status === activeFilter;
-    const searchable = [app.name, app.description, app.category, ...app.technologies].join(" ").toLowerCase().normalize("NFKC");
-    return matchesStatus && searchable.includes(query);
+    const matchesKind = activeKind === "all" || app.kind === activeKind;
+    const kindText = kindMeta[app.kind] ? kindMeta[app.kind].label : "";
+    const searchable = [app.name, app.description, app.category, kindText, ...app.technologies].join(" ").toLowerCase().normalize("NFKC");
+    return matchesStatus && matchesKind && searchable.includes(query);
   });
 
   appGrid.innerHTML = filtered.map((app, index) => {
     const live = app.status === "released";
+    const kind = kindMeta[app.kind];
     return `
-    <article class="app-card ${live ? "is-live" : ""} ${app.url ? "" : "no-link"}" data-index="${String(index + 1).padStart(2, "0")}" style="--card-accent:${app.accent}; animation-delay:${Math.min(index, 8) * 35}ms">
+    <article class="app-card ${live ? "is-live" : ""} ${app.url ? "" : "no-link"} ${app.kind ? "kind-" + app.kind : ""}" data-index="${String(index + 1).padStart(2, "0")}" style="--card-accent:${app.accent}; animation-delay:${Math.min(index, 8) * 35}ms">
       <div class="card-top">
         <span class="status ${app.status}">${live ? '<span class="dot" aria-hidden="true"></span>' : ""}${statusLabels[app.status]}</span>
-        <span class="category">${app.category}</span>
+        ${kind ? `<span class="kind ${app.kind}"><span class="kind-icon" aria-hidden="true">${kind.icon}</span>${kind.label}</span>` : ""}
       </div>
       <div class="app-icon" aria-hidden="true">${app.icon}</div>
       <h3>${app.name}</h3>
       <p class="app-description">${app.description}</p>
-      <div class="tech-list">${app.technologies.map(technology => `<span>${technology}</span>`).join("")}</div>
-      <div class="open-label">${app.url ? '今すぐ使う <span class="arrow" aria-hidden="true">↗</span>' : "準備中"}</div>
-      ${app.url ? `<a class="card-link" href="${app.url}" ${app.url.startsWith("http") ? 'target="_blank" rel="noreferrer"' : ""} aria-label="${app.name}を開く"></a>` : ""}
+      <div class="tech-list"><span class="category">${app.category}</span>${app.technologies.map(technology => `<span>${technology}</span>`).join("")}</div>
+      <div class="open-label">${app.url && kind ? `${kind.cta} <span class="arrow" aria-hidden="true">${kind.arrow}</span>` : "準備中"}</div>
+      ${app.url ? `<a class="card-link" href="${app.url}" ${app.url.startsWith("http") ? 'target="_blank" rel="noreferrer"' : ""} aria-label="${app.name}を${kind ? kind.cta : "開く"}"></a>` : ""}
     </article>
   `;
   }).join("");
@@ -139,6 +158,7 @@ function renderApps() {
   isFirstRender = false;
 }
 
+// 公開状態の絞り込み
 document.querySelectorAll(".filter").forEach(button => {
   button.addEventListener("click", () => {
     activeFilter = button.dataset.filter;
@@ -151,13 +171,29 @@ document.querySelectorAll(".filter").forEach(button => {
   });
 });
 
+// 使い方(ブラウザ / ダウンロード)の絞り込み
+document.querySelectorAll(".kind-filter").forEach(button => {
+  button.addEventListener("click", () => {
+    activeKind = button.dataset.kind;
+    document.querySelectorAll(".kind-filter").forEach(item => {
+      const selected = item === button;
+      item.classList.toggle("active", selected);
+      item.setAttribute("aria-pressed", String(selected));
+    });
+    renderApps();
+  });
+});
+
 searchInput.addEventListener("input", renderApps);
 
 const countBy = status => apps.filter(app => app.status === status).length;
+const countKind = kind => apps.filter(app => app.kind === kind).length;
 document.querySelector("#countAll").textContent = apps.length;
 document.querySelector("#countReleased").textContent = countBy("released");
 document.querySelector("#countDeveloping").textContent = countBy("developing");
 document.querySelector("#countPlanned").textContent = countBy("planned");
+document.querySelector("#countWeb").textContent = countKind("web");
+document.querySelector("#countDownload").textContent = countKind("download");
 document.querySelector("#releasedCount").textContent = countBy("released");
 document.querySelector("#year").textContent = new Date().getFullYear();
 renderApps();

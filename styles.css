@@ -14,6 +14,10 @@
   --developing-ink: #7a5b16;
   --planned: #ebe7f7;
   --planned-ink: #5f527d;
+  --web-soft: #e4f0fd;
+  --web-ink: #1f5c96;
+  --dl-soft: #efe9fb;
+  --dl-ink: #5b4894;
   --header-h: 54px;
 }
 
@@ -217,6 +221,72 @@ h1 {
   font-size: 12.5px;
 }
 
+/* 使い方(ブラウザ / ダウンロード)の絞り込み */
+.kind-tools {
+  margin: -4px 0 18px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.kind-tools-label {
+  margin-right: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.kind-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: transform .16s ease, background .16s ease, color .16s ease, border-color .16s ease;
+}
+.kind-filter:hover { transform: translateY(-1px); border-color: #c7cec8; }
+.kind-filter.active {
+  border-style: solid;
+  font-weight: 700;
+}
+.kind-filter.kf-web.active {
+  color: var(--web-ink);
+  border-color: #b9d4f2;
+  background: var(--web-soft);
+}
+.kind-filter.kf-download.active {
+  color: var(--dl-ink);
+  border-color: #d5c9ee;
+  background: var(--dl-soft);
+}
+.kind-filter[data-kind="all"].active {
+  color: #2c4f3d;
+  border-color: #bed6c9;
+  background: var(--accent-soft);
+}
+
+/* カード上のバッジ */
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: .02em;
+}
+.kind.web { color: var(--web-ink); background: var(--web-soft); }
+.kind.download { color: var(--dl-ink); background: var(--dl-soft); }
+.kind-icon { font-size: 11px; line-height: 1; }
+.app-card.kind-download .open-label { color: var(--dl-ink); }
+/* ダウンロードは外部サイトへ飛ぶので、矢印の動きも外向きに */
+.app-card.kind-download:hover .open-label .arrow { transform: translate(3px, -3px); }
+
 /* ---------- カード ---------- */
 .app-grid {
   display: grid;
@@ -305,7 +375,6 @@ h1 {
 }
 .status.developing { color: var(--developing-ink); background: var(--developing); }
 .status.planned { color: var(--planned-ink); background: var(--planned); }
-.category { color: var(--muted); background: var(--surface-soft); }
 
 .app-icon {
   width: 44px;
@@ -344,6 +413,7 @@ h1 {
   color: #77817b;
   font: 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
 }
+.tech-list .category { color: #5d6862; font-weight: 700; }
 .tech-list span + span::before {
   content: "·";
   margin-right: 6px;
