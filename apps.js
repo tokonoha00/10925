@@ -103,6 +103,7 @@ const searchInput = document.querySelector("#searchInput");
 const resultCount = document.querySelector("#resultCount");
 const emptyState = document.querySelector("#emptyState");
 let activeFilter = "all";
+let isFirstRender = true;
 
 function renderApps() {
   const query = searchInput.value.trim().toLowerCase().normalize("NFKC");
@@ -112,23 +113,30 @@ function renderApps() {
     return matchesStatus && searchable.includes(query);
   });
 
-  appGrid.innerHTML = filtered.map((app, index) => `
-    <article class="app-card ${app.url ? "" : "no-link"}" data-index="${String(index + 1).padStart(2, "0")}" style="--card-accent:${app.accent}">
+  appGrid.innerHTML = filtered.map((app, index) => {
+    const live = app.status === "released";
+    return `
+    <article class="app-card ${live ? "is-live" : ""} ${app.url ? "" : "no-link"}" data-index="${String(index + 1).padStart(2, "0")}" style="--card-accent:${app.accent}; animation-delay:${Math.min(index, 8) * 35}ms">
       <div class="card-top">
-        <span class="status ${app.status}">${statusLabels[app.status]}</span>
+        <span class="status ${app.status}">${live ? '<span class="dot" aria-hidden="true"></span>' : ""}${statusLabels[app.status]}</span>
         <span class="category">${app.category}</span>
       </div>
       <div class="app-icon" aria-hidden="true">${app.icon}</div>
       <h3>${app.name}</h3>
       <p class="app-description">${app.description}</p>
       <div class="tech-list">${app.technologies.map(technology => `<span>${technology}</span>`).join("")}</div>
-      <div class="open-label">${app.url ? 'アプリを見る <span>↗</span>' : "準備中"}</div>
+      <div class="open-label">${app.url ? '今すぐ使う <span class="arrow" aria-hidden="true">↗</span>' : "準備中"}</div>
       ${app.url ? `<a class="card-link" href="${app.url}" ${app.url.startsWith("http") ? 'target="_blank" rel="noreferrer"' : ""} aria-label="${app.name}を開く"></a>` : ""}
     </article>
-  `).join("");
+  `;
+  }).join("");
 
   resultCount.textContent = `${filtered.length}件を表示`;
   emptyState.hidden = filtered.length !== 0;
+
+  // 初回だけ順番に立ち上がる演出。以降の再描画はフェードのみ
+  appGrid.classList.toggle("first-render", isFirstRender);
+  isFirstRender = false;
 }
 
 document.querySelectorAll(".filter").forEach(button => {
@@ -144,8 +152,12 @@ document.querySelectorAll(".filter").forEach(button => {
 });
 
 searchInput.addEventListener("input", renderApps);
-document.querySelector("#totalCount").textContent = apps.length;
-document.querySelector("#releasedCount").textContent = apps.filter(app => app.status === "released").length;
-document.querySelector("#developingCount").textContent = apps.filter(app => app.status === "developing").length;
+
+const countBy = status => apps.filter(app => app.status === status).length;
+document.querySelector("#countAll").textContent = apps.length;
+document.querySelector("#countReleased").textContent = countBy("released");
+document.querySelector("#countDeveloping").textContent = countBy("developing");
+document.querySelector("#countPlanned").textContent = countBy("planned");
+document.querySelector("#releasedCount").textContent = countBy("released");
 document.querySelector("#year").textContent = new Date().getFullYear();
 renderApps();
