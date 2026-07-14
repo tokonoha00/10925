@@ -42,23 +42,23 @@ const apps = [
   },
   {
     name: "Idle Motion Maker",
-    description: "立ち絵やマスコットのPNGに、浮遊・呼吸・ぷるぷる・跳ねなどの待機モーションを付けて完全ループ素材として書き出せるツールです。",
-    status: "released",
+    description: "立ち絵やマスコットのPNGに、浮遊・呼吸・ぷるぷる・跳ねなどの待機モーションを付けて完全ループ素材として書き出せるツールを開発しています。",
+    status: "developing",
     category: "MATERIAL TOOL",
     icon: "◍",
     accent: "#ff9f7f",
     technologies: ["HTML", "Canvas", "JavaScript"],
-    url: "apps/idle-motion-maker/"
+    url: ""
   },
   {
     name: "Manga FX Maker",
-    description: "手描き風に揺れる集中線・流線・怒りマーク・汗などの漫符アニメを生成し、配信や動画編集用の透過素材として書き出せるツールです。",
-    status: "released",
+    description: "手描き風に揺れる集中線・流線・怒りマーク・汗などの漫符アニメを生成し、配信や動画編集用の透過素材として書き出せるツールを開発しています。",
+    status: "developing",
     category: "MATERIAL TOOL",
     icon: "※",
     accent: "#f28bd0",
     technologies: ["HTML", "Canvas", "JavaScript"],
-    url: "apps/manga-fx-maker/"
+    url: ""
   },
   {
     name: "Logo Shine Maker",
